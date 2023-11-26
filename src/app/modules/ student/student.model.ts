@@ -1,6 +1,5 @@
 import { Schema, model } from 'mongoose';
 import validator from 'validator';
-import bcrypt from 'bcrypt';
 import {
   TGuardian,
   TLocalGuardian,
@@ -8,7 +7,6 @@ import {
   StudentModel,
   TUserName,
 } from './student.interface';
-import config from '../../config';
 
 
 //Creating schema of mongoose
@@ -66,7 +64,12 @@ const localGuardianSchema = new Schema<TLocalGuardian>({
 //creating student schema with custom method
 const studentSchema = new Schema<TStudent, StudentModel>({
   id: { type: String, required: true, unique: true }, //unique true dewai duplicate value ba id insert hobe na
-  password: { type: String, required: true},
+  user: {
+    type: Schema.Types.ObjectId,
+    required: [true, 'User id is required'],
+    unique: true,
+    ref: 'User' //referencing --> User model er sathe referencing korlam
+  },
   name: {
     type: userNameSchema,
     required: true, //name na dileo data insert hoie jachilo se jonno required true kore dilam r type evabe dilam
@@ -106,11 +109,6 @@ const studentSchema = new Schema<TStudent, StudentModel>({
     required: true,
   },
   profileImg: { type: String, trim: true },
-  isActive: {
-    type: String,
-    enum: ['active', 'blocked'],
-    default: 'active', //default value active auto value pabe kisu na dile
-  },
   isDeleted: {
     type: Boolean,
     default: false 
@@ -131,19 +129,7 @@ studentSchema.virtual('fullName').get(function(){
   )
 })
 
-///TODO: Document Middleware
-//Pre save middleware/hook will work on create() function and save() function
-studentSchema.pre('save', async function(next){ //save event er name, data save howar age hook ta call hobe
-  // console.log(this, "pre hook: we will save the data")
-   //hashing password and save into db
-   //this keyword diye database e pathano document ta pawa jai
 
-   // eslint-disable-next-line @typescript-eslint/no-this-alias
-   const user = this;
-   user.password = await bcrypt.hash(user.password, Number(config.bcrypt_salt_rounds)) //user.password e hashed password ta db te jabe
-   next();
-   
-})
 
 ///TODO: Query middleware
 studentSchema.pre('find', function(next){
@@ -163,15 +149,7 @@ studentSchema.pre('aggregate', function(next){
 })
 
 
-///TODO: Document Milleware post
-//post save middleware/hook
-studentSchema.post('save', function(doc, next){ //data save howar pore hook ta call hobe
-  // console.log(this, 'post hook: we saved our data')
-  //doc ta updated document jeta database e save hoise
 
-  doc.password=''; //password k empty string kore dialm
-  next();
-})
 
 //Creating a custom static method
 studentSchema.statics.isUserExists = async function(id: string){
