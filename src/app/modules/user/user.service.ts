@@ -1,10 +1,13 @@
 import { TStudent } from "../ student/student.interface";
 import { Student } from "../ student/student.model";
 import config from "../../config";
+import { TAcademicSemester } from "../academicSemester/academicSemester.interface";
+import { AcademicSemester } from "../academicSemester/academicSemester.model";
 import {  TUser } from "./user.interface";
 import { User } from "./user.model";
+import { generateStudentId } from "./user.utils";
 
-const createStudentIntoDB = async (password: string, studentData: TStudent) => {
+const createStudentIntoDB = async (password: string, payLoad: TStudent) => {
      //Create an user object
      const userData : Partial<TUser> = {}//Tuser er type k partial korse mane tuser er sob property cole asche kintu sob optional hisebe
      
@@ -16,8 +19,11 @@ const createStudentIntoDB = async (password: string, studentData: TStudent) => {
    userData.role = 'student';
 
 
+   //find academic semester info
+   const admissionSemester = await AcademicSemester.findById(payLoad.admissionSemester)
+  //  console.log("adx:",admissionSemester)
    //set manually generated id
-   userData.id = '2030100001'
+   userData.id = await generateStudentId(admissionSemester as TAcademicSemester);
 
    //create a user
     const newUser = await User.create(userData);
@@ -27,10 +33,10 @@ const createStudentIntoDB = async (password: string, studentData: TStudent) => {
       //set id, _id as user
 
       //student create korar somoy user id student er id hisebe bosabo embedded hobe && user er _id ta user: filed e objectId hisebe referencing korbo
-      studentData.id = newUser.id; //embedding id
-      studentData.user = newUser._id; //reference id
+      payLoad.id = newUser.id; //embedding id
+      payLoad.user = newUser._id; //reference id
 
-      const newStudent = await Student.create(studentData);
+      const newStudent = await Student.create(payLoad);
       return newStudent;
     }
     // return newUser;

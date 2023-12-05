@@ -1,21 +1,20 @@
-import { NextFunction, Request, Response } from "express";
 import { UserServices } from "./user.service";
+import sendResponse from "../../utils/sendResponse";
+import httpStatus from "http-status";
+import catchAsync from "../../utils/catchAsync";
 
-const createStudent = async (req: Request, res: Response, next: NextFunction) => {
-    try {
+const createStudent = catchAsync( async (req, res) => { //req: Request, res: Response, next: NextFunction req, res, r next er type define kore de RequestHandler Type
 
-      const { password, student: studentData } = req.body; //student object recv kortese req.body theke //studentData name alias
-      const result = await UserServices.createStudentIntoDB(password, studentData);
-      res.status(200).json({
-        success: true,
-        message: 'Student is created successfully',
-        data: result,
-      });
-    } catch (err) {
-      next(err);
-     
-    }
-  };
+
+    const { password, student: studentData } = req.body; //student object recv kortese req.body theke //studentData name alias
+    const result = await UserServices.createStudentIntoDB(password, studentData);
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Students is created successfully',
+      data: result,
+    });
+});
 
   export const UserControllers = {
     createStudent

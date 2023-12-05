@@ -7,6 +7,7 @@ import { StudentRoutes } from './app/modules/ student/student.route';
 import { UserRoutes } from './app/modules/user/user.route';
 import { globalErrorHandler } from './app/middleware/globalErrorHandler';
 import router from './app/routes';
+import notFound from './app/middleware/notFound';
 const app: Application = express();
 
 //parsers
@@ -22,6 +23,9 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 //global error handler
-app.use(globalErrorHandler)
+app.use(globalErrorHandler);
+
+//not found route
+app.use(notFound)
 
 export default app;
