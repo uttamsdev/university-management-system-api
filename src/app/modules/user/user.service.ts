@@ -11,13 +11,11 @@ const createStudentIntoDB = async (password: string, payLoad: TStudent) => {
      //Create an user object
      const userData : Partial<TUser> = {}//Tuser er type k partial korse mane tuser er sob property cole asche kintu sob optional hisebe
      
-
     //if password is not given use default password
     userData.password = password || (config.default_password as string);
 
    //set student role
    userData.role = 'student';
-
 
    //find academic semester info
    const admissionSemester = await AcademicSemester.findById(payLoad.admissionSemester)
