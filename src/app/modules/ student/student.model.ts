@@ -127,7 +127,7 @@ const studentSchema = new Schema<TStudent, StudentModel>({
 // vitual use korte hobe schema er moddhe virtual k enable kort hoi schema er last e 
 studentSchema.virtual('fullName').get(function(){
   return (
-    `${this.name.firstName}  ${this.name.middleName}  ${this.name.lastName}`
+    `${this?.name?.firstName}  ${this?.name?.middleName}  ${this?.name?.lastName}`
   )
 })
 

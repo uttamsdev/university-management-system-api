@@ -5,8 +5,27 @@ import { User } from '../user/user.model';
 import httpStatus from 'http-status';
 import { TStudent } from './student.interface';
 
-const getAllStudentDataFromDB = async () => {
-  const result = Student.find()
+const getAllStudentDataFromDB = async (query: Record<string, unknown>) => { //Record<string, unknwn> diye bojacche ekta object hobe key hobe string value hobe unknown
+  //{email: {}}
+  const queryObj = {...query}; //queryObj e query copy kortesi
+  let searchTerm = '';
+  if(query?.searchTerm){
+    searchTerm = query?.searchTerm as string;
+  }
+
+  //searchTerm="komol" email, fristname ba permanent address kohtaio pertial match holei retrun kobre result
+  const searchQuery =  Student.find({
+    $or: ['email', 'name.firstName', 'presentAddress'].map((field) => ({
+      [field] : {$regex: searchTerm, $options: 'i'} //options: i for case insensetive //field j field k search korbo seta dynamically pabe
+    }))
+  })
+
+  //filtering
+  const excludeFields = ['searchTerm','sort', 'limit', 'page', 'fields'];
+  excludeFields.forEach(el => delete queryObj[el]) // searchTerm filed ta k exclude kore dicce
+  console.log(query, queryObj)
+  //filtering email:komol@gmail.com exact match hote hobe
+  const filterQuery =  searchQuery.find(queryObj) //searchQuery ta chaining kortesi age Student.find ta execute hobe then searchQuery ta execute howar pore ei line excute hbe
     .populate('admissionSemester')
     .populate({
       path: 'academicDepartment',
@@ -15,7 +34,42 @@ const getAllStudentDataFromDB = async () => {
       },
     }); //multiple value howar 2 bar populate use korchi  ekhane academicDeparment er moddheo abar academicFaculty referencing kora ache tai
   //academicFaculty er data dekhate evabe path akare populate korte hobe.
-  return result;
+
+  let sort = "-createdAt" //createdAt descending order e sort hobe bydefault
+  if(query.sort){
+    sort = query.sort as string;
+  }
+
+  //bar bar query lekhar karon hocce amara evabe query chaining kortesi
+  const sortQuery =  filterQuery.sort(sort);
+
+  let page = 1;
+  let limit = 1;
+  let skip = 0;
+  if(query.limit){
+    limit = Number(query.limit);
+  }
+  if(query.page){
+    page= Number(query.page);
+    skip = (page -1) * Number(limit);
+  }
+ 
+
+
+  const paginateQuery = sortQuery.skip(skip);
+ 
+  const limitQuery =  paginateQuery.limit(limit as number);
+
+
+  let fields = '-__v'; //__v er age - dewa mane oita bad dewa 
+  //fields = 'name,email'
+  //convert to fields = 'name email'
+  if(query.fields){
+    fields = (query.fields as string).split(",").join(" ");
+  }
+
+  const filedQuery = await limitQuery.select(fields);
+  return filedQuery;
 };
 
 const getSingleStudentFromDB = async (id: string) => {

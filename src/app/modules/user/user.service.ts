@@ -62,7 +62,7 @@ const createStudentIntoDB = async (password: string, payLoad: TStudent) => {
   } catch (error) {
     await session.abortTransaction(); //kono error hole transaction ta abort kore dibe.
     await session.endSession();
-    throw new Error("Failed to create student")
+    throw new Error(error)
   }
  
     // return newUser;
