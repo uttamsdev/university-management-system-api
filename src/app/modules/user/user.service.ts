@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { TStudent } from "../ student/student.interface";
 import { Student } from "../ student/student.model";
 import config from "../../config";
@@ -6,6 +7,8 @@ import { AcademicSemester } from "../academicSemester/academicSemester.model";
 import {  TUser } from "./user.interface";
 import { User } from "./user.model";
 import { generateStudentId } from "./user.utils";
+import AppError from "../../errors/AppError";
+import httpStatus from "http-status";
 
 const createStudentIntoDB = async (password: string, payLoad: TStudent) => {
      //Create an user object
@@ -20,23 +23,48 @@ const createStudentIntoDB = async (password: string, payLoad: TStudent) => {
    //find academic semester info
    const admissionSemester = await AcademicSemester.findById(payLoad.admissionSemester)
   //  console.log("adx:",admissionSemester)
-   //set manually generated id
+
+
+  //TODO: Transaction & rollback 
+  const session = await mongoose.startSession(); // starting session
+  try {
+    //starting the transaction
+    session.startTransaction(); 
+      //set manually generated id
    userData.id = await generateStudentId(admissionSemester as TAcademicSemester);
 
-   //create a user
-    const newUser = await User.create(userData);
+   //create a user (transaction -> 1)
+   //transaction use korar karone newUser array hoie jabe
+    const newUser = await User.create([userData],{session}); //array hisebe userData pathacchi transaction use korar jonno session object akare dite hobe. newUser ekta array return korbe
 
-    //create a student
-    if(Object.keys(newUser).length){//object.keys diye newUser ta k array banano holo ebong newUser er length thaklei bujbo user create hoise
+
+    if(!newUser.length){//new user create na hole
+      throw new AppError(httpStatus.BAD_REQUEST, "Failed to create user");
+    }
+
       //set id, _id as user
 
       //student create korar somoy user id student er id hisebe bosabo embedded hobe && user er _id ta user: filed e objectId hisebe referencing korbo
-      payLoad.id = newUser.id; //embedding id
-      payLoad.user = newUser._id; //reference id
+      payLoad.id = newUser[0].id; //embedding id
+      payLoad.user = newUser[0]._id; //reference id
 
-      const newStudent = await Student.create(payLoad);
+          //create a student (Transaction --> 2)
+      const newStudent = await Student.create([payLoad], {session});
+
+      if(!newStudent.length){
+        throw new AppError(httpStatus.BAD_REQUEST, "Failed to create student")
+      }
+      //commit the transaction
+      await session.commitTransaction();
+      await session.endSession();
       return newStudent;
-    }
+    
+  } catch (error) {
+    await session.abortTransaction(); //kono error hole transaction ta abort kore dibe.
+    await session.endSession();
+    throw new Error("Failed to create student")
+  }
+ 
     // return newUser;
   };
 
