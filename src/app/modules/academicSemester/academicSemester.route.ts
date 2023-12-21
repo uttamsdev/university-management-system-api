@@ -25,4 +25,4 @@ router.get(
   );
   
   router.get('/', AcademicSemesterControllers.getAllAcademicSemesters);
-export const AcademicSemesterRoute = router;
+export const AcademicSemesterRoutes = router;
